@@ -11,45 +11,61 @@ import {
   Modal,
 } from 'react-native';
 
-const MainScreen = ({ navigation }) => {
+const MainScreen = ({ navigation, route }) => {
+  const [coordinates, setCoordinates] = useState({ x: 0, y: 0 });
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedFunctions, setSelectedFunctions] = useState([]);
 
   const handleOpenModal = () => {
     setModalVisible(true);
   };
-  const handleCombinedFunctions = () => {
-    const functionsToExecute = [
-      moveImageToRight,
-      moveImageToLeft,
-      moveImageToBottomRight,
-      handleOpenModalOneSec,
-    ];
-  
-    functionsToExecute.forEach((func, index) => {
-      setTimeout(func, (index + 1) * 1500);
+
+  const handleCombinedFunctions = (actions) => {
+    actions.forEach((action, index) => {
+      setTimeout(() => {
+        if (action === 'MoveX--35') {
+          moveByCoordinates(35, 0);
+        } else if (action === 'MoveY--70') {
+          moveByCoordinates(0, 70);
+        } else if (action === 'MoveXY--100') {
+          moveByCoordinates(100, 100);
+        } else if (action === 'Origin') {
+          setCoordinates({ x: 0, y: 0 });
+        } else if (action === 'Hello') {
+          setInputText('Hello');
+        } else if (action === 'Hmm') {
+          setInputText('Hmm');
+        }
+      }, index * 2000);
     });
   };
+
+  const moveByCoordinates = (x, y) => {
+    setCoordinates((prevCoordinates) => ({
+      x: prevCoordinates.x + x,
+      y: prevCoordinates.y + y,
+    }));
+  };
+
   const handleOpenModalOneSec = () => {
     setModalVisible(true);
     setTimeout(() => {
       setModalVisible(false);
     }, 1000);
   };
-  const [inputText, setInputText] = useState('');
 
+  const [inputText, setInputText] = useState('');
 
   const handleCloseModal = () => {
     setModalVisible(false);
   };
+
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageData, setImageData] = useState([
     require('./assets/zzzz.png'),
     require('./assets/ccc.png'),
     require('./assets/ssss.png'),
   ]);
-  const [coordinates, setCoordinates] = useState({ x: 0, y: 0 });
-  const [rotation, setRotation] = useState(0);
 
   const handleNewScreenPress = () => {
     navigation.navigate('SplitScreenWithTable', { rotateImage });
@@ -57,15 +73,13 @@ const MainScreen = ({ navigation }) => {
 
   const rotateImage = (degrees) => {
     if (selectedImage) {
-      setSelectedImage((prevImage) => {
-        return {
-          ...prevImage,
-          style: {
-            ...prevImage.style,
-            transform: [{ rotate: `${degrees}deg` }],
-          },
-        };
-      });
+      setSelectedImage((prevImage) => ({
+        ...prevImage,
+        style: {
+          ...prevImage.style,
+          transform: [{ rotate: `${degrees}deg` }],
+        },
+      }));
     }
   };
 
@@ -87,11 +101,6 @@ const MainScreen = ({ navigation }) => {
       onPanResponderMove: handlePanResponderMove,
     })
   ).current;
-
-  const handleRotationChange = (degrees) => {
-    setRotation(degrees);
-    rotateImage(degrees);
-  };
 
   const handleXCoordinateChange = (text) => {
     const parsedX = parseFloat(text);
@@ -126,7 +135,7 @@ const MainScreen = ({ navigation }) => {
   const moveImageToRight = () => {
     setCoordinates((prevCoordinates) => ({
       ...prevCoordinates,
-      x: prevCoordinates.x + 35,
+      x: prevCoordinates.x + 45,
     }));
   };
 
@@ -144,38 +153,40 @@ const MainScreen = ({ navigation }) => {
     }));
   };
 
-  const rotateImageBy90 = () => {
-    handleRotationChange(rotation + 90);
-  };
-
   const renderImageItem = ({ item }) => (
     <TouchableOpacity style={styles.imageItem} onPress={() => handleImagePress(item)}>
       <Image source={item} style={styles.thumbnailImage} />
     </TouchableOpacity>
   );
+
   const reset = () => {
     setInputText('');
     setCoordinates({ x: 0, y: 0 });
   };
 
+  console.log(route?.params?.data);
 
   return (
     <View style={styles.container}>
-    <Modal visible={isModalVisible} animationType="fade" transparent>
+      <Modal visible={isModalVisible} animationType="fade" transparent>
         <View style={styles.modalContainer}>
           <Image source={require('./assets/hello.png')} style={styles.modalImage} />
-          </View>
+          <Button title="Close" onPress={handleCloseModal} />
+        </View>
       </Modal>
       <View style={styles.topBox} {...panResponder.panHandlers}>
         {selectedImage ? (
-          <Image
-            source={selectedImage}
-            style={[
-              styles.selectedImage,
-              selectedImage.style,
-              { left: coordinates.x, top: coordinates.y },
-            ]}
-          />
+          <View style={styles.selectedImageContainer}>
+            {inputText !== '' && <Text style={styles.placeholderText}>{inputText}</Text>}
+            <Image
+              source={selectedImage}
+              style={[
+                styles.selectedImage,
+                selectedImage.style,
+                { left: coordinates.x, top: coordinates.y },
+              ]}
+            />
+          </View>
         ) : (
           <Text style={styles.placeholderText}>Select an image</Text>
         )}
@@ -183,27 +194,37 @@ const MainScreen = ({ navigation }) => {
 
       <View style={styles.middleBox}>
         <View style={styles.coordinateInputContainer}>
-        <Text style={{ fontWeight: 'bold', color:'green'}}>X:</Text>
+          <Text>X:</Text>
           <TextInput
             style={styles.coordinateInput}
             value={coordinates.x.toString()}
             onChangeText={handleXCoordinateChange}
             keyboardType="numeric"
           />
-          <Text style={{ fontWeight: 'bold', color:'green' }}>Y:</Text>
+          <Text>Y:</Text>
           <TextInput
             style={styles.coordinateInput}
             value={coordinates.y.toString()}
             onChangeText={handleYCoordinateChange}
             keyboardType="numeric"
           />
+          <View style={styles.inputContainer}></View>
+          <Text style={styles.inputLabel}>Text:</Text>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+          />
         </View>
-        <Text>{rotation.toFixed(5)}</Text>
-        <Button title="↺" onPress={(reset) => setCoordinates({ x: 0.0, y: 0.0 }) } color="blue" />
+        <Button title="↺" onPress={reset}  color="red" />
+
         <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleCombinedFunctions}>
-        <Text style={styles.buttonText}>▶</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => handleCombinedFunctions(route?.params?.data)}
+          >
+            <Text style={styles.buttonText}>Combined Functions</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -230,7 +251,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-    backgroundColor:'lightgrey',
   },
   modalContainer: {
     flex: 1,
@@ -243,29 +263,37 @@ const styles = StyleSheet.create({
     height: 100,
     resizeMode: 'contain',
   },
+  inputLabel: {
+    marginRight: 5,
+    fontWeight: 'bold',
+  },
   topBox: {
     flex: 2,
-    borderWidth: 3,
+    borderWidth: 1,
     borderColor: 'green',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor:'white',
   },
   middleBox: {
-    borderWidth: 3,
+    borderWidth: 1,
     borderColor: 'green',
     padding: 10,
     marginVertical: 10,
     alignItems: 'center',
-    backgroundColor:'white',
+  },
+  selectedImageContainer: {
+    width: '70%',
+    height: '70%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
   bottomBox: {
     flexDirection: 'row',
     justifyContent: 'center',
-    borderWidth: 3,
+    borderWidth: 1,
     borderColor: 'green',
     height: 50,
-    backgroundColor:'white',
   },
   placeholderText: {
     fontSize: 16,
@@ -290,7 +318,6 @@ const styles = StyleSheet.create({
     borderColor: 'green',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
   },
   coordinateInputContainer: {
     flexDirection: 'row',
@@ -300,8 +327,8 @@ const styles = StyleSheet.create({
   coordinateInput: {
     width: 50,
     marginLeft: 5,
-    borderWidth: 2,
-    borderColor: 'green',
+    borderWidth: 1,
+    borderColor: 'gray',
     padding: 5,
   },
   button: {
